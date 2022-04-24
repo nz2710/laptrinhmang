@@ -47,7 +47,7 @@ int main() {
 	//todo get drive name
 	DWORD dwSize = MAX_PATH;
 	char szLogicalDrives[MAX_PATH] = {0};
-	DWORD dwResult = GetLogicalDriveStrings(dwSize,szLogicalDrives);
+	DWORD dwResult = GetLogicalDriveStringsA(dwSize,szLogicalDrives);
 	if (dwResult > 0 && dwResult <= MAX_PATH)
 	{
 	    char* szSingleDrive = szLogicalDrives;
@@ -62,27 +62,28 @@ int main() {
 	};
 	
 	//todo get free space
-	if (dwResult > 0 && dwResult <= MAX_PATH)
-	{
-	char* szSingleDrive = szLogicalDrives;
-	while(*szSingleDrive)
-	{
-		LPCSTR root = szSingleDrive;
-		DWORD sectorsPerCluster;
-		DWORD bytesPerSector;
-		DWORD numberOfFreeClusters;
-		DWORD totalNumberOfClusters;
-		if (GetDiskFreeSpaceA(root, &sectorsPerCluster, &bytesPerSector, &numberOfFreeClusters, &totalNumberOfClusters)) {
-			long long free_space = (long long)bytesPerSector * sectorsPerCluster * numberOfFreeClusters;
-			std::string s = (std::to_string(free_space));
-			const char* freespace = s.c_str();
-			strcat(client_info, "Free Space: ");
-			strcat(client_info, freespace);
-			strcat(client_info, " Byte\n");
-		}
-		szSingleDrive += strlen(szSingleDrive) + 1;
+	CHAR DriveName[32];
+	int drive_leng = GetLogicalDriveStringsA(256, DriveName);
+	LPCSTR root = "";
+	DWORD sectorsPerCluster;
+	DWORD bytesPerSector;
+	DWORD numberOfFreeClusters;
+	DWORD totalNumberOfClusters;
+	long long free_space = 0;
+
+	for (int i = 0; i < drive_leng; i += 4) {
+		root = DriveName + i;
+		if (GetDiskFreeSpaceA(root, &sectorsPerCluster, &bytesPerSector, &numberOfFreeClusters, &totalNumberOfClusters))
+		free_space += (long long)bytesPerSector * sectorsPerCluster * numberOfFreeClusters;
+		std::string s = (std::to_string(free_space));
+		const char* freespace = s.c_str();
+	
+		strcat(client_info, "Free Space: ");
+		strcat(client_info, freespace);
+		strcat(client_info, " Byte\n"); 
+		free_space = 0;
 	}
-	};
+
 
 	send(client_socket, client_info, strlen(client_info), 0);
 
